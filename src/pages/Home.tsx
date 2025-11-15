@@ -1,32 +1,73 @@
+import { Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Link } from "@heroui/react";
 import instance from "../libs/axios/instance";
-import { Button } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+interface User {
+  _id: string;
+  name: string;
+  status: string;
+  createdAt?: string;
+}
 
 export default function Home() {
-  const [count, setCount] = useState(0);
-  const [ping, setPing] = useState("");
 
-  const fetchPing = async () => {
+  const fetchUsers = async () => {
     try {
-      const response = await instance.get("/ping");
-      setPing(JSON.stringify(response.data));
+      const response = await instance.get("/users");
+      return response.data.data as User[];
     } catch (error) {
-      console.error("Error fetching ping:", error);
+      console.error("Error fetching users:", error);
     } finally {
-      console.log("Ping fetch attempt finished.");
+      console.log("Users fetch attempt finished.");
     }
   }
-
-  useEffect(() => {
-    fetchPing();
-  }, []);
+  
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  })
   
   return (
-    <div>
-      <h1>Home</h1>
-      <Button onClick={() => setCount((count) => count + 1)} color="primary">Button</Button>
-      <span className='rounded-md shadow-md bg-white px-4 py-2'>{count}</span>
-      <span>Ping: {ping}</span>
-    </div>
+    <>
+      {/* <span>users: {JSON.stringify(users)}</span> */}
+      <Table fullWidth={true}>
+        <TableHeader>
+          {/* <TableColumn>ID</TableColumn> */}
+          <TableColumn>Name</TableColumn>
+          <TableColumn>Status</TableColumn>
+          <TableColumn>Created At</TableColumn>
+          <TableColumn>Actions</TableColumn>
+        </TableHeader>
+        <TableBody
+          items={users || []}
+          isLoading={isLoading}
+          loadingContent={<Spinner />}
+        >
+          {(user: User) => (
+            <TableRow key={user._id}>
+              {/* <TableCell>{user._id}</TableCell> */}
+              <TableCell>{user.name}</TableCell>
+              <TableCell>
+                {user.status === "listening" ? <span className="text-green-500 bg-green-100 px-2 py-1 rounded-full text-sm">
+                  {user.status}
+                </span> : <span className="text-red-500 bg-red-100 px-2 py-1 rounded-full text-sm">
+                  {user.status}
+                </span>}
+              </TableCell>
+              <TableCell>{user.createdAt?.split("T")[0]}</TableCell>
+              <TableCell>
+                <Link 
+                  href={`/users/${user._id}`}
+                  size="sm"
+                  underline="hover"
+                >
+                    View
+                </Link>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </>
   )
 }
